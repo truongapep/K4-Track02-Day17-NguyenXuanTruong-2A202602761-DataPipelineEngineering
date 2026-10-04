@@ -5,7 +5,7 @@ Phần phân tích tối đa một trang, không tính output ở phần 5.
 
 **Họ tên / MSSV:** Nguyễn Xuân Trường / 2A202602761
 **Repo:** https://github.com/truongapep/K4-Track02-Day17-NguyenXuanTruong-2A202602761-DataPipelineEngineering
-**Commit bài nộp:** 2c98d84
+**Commit bài nộp:** 416afa8
 **AI đã dùng và phạm vi hỗ trợ (hoặc không dùng):** Claude Code — hỗ trợ xác định 3 lỗi có chủ đích (staging/silver/config), đối chiếu logic với `dbt_project/`, gợi ý lệnh kiểm tra. Claude (chat) — rà soát REPORT, đối chiếu với RUBRIC/RULES và đề xuất cách sửa `pipeline/llm_label.py` cho bonus B1 (cache theo hash + model + prompt version, validate và quarantine). Tôi đã đọc, chạy và kiểm chứng toàn bộ thay đổi bằng `verify`/`pytest`/`rerun`/`parity`/`bonus_llm`, và giải thích được từng dòng sửa.
 **Nguồn tham khảo khác (nếu có):** Slide Ngày 17 (Bronze/Silver/Gold, CDC log-based, Data về muộn, Chạy lại & Backfill), docs `CHECKPOINTS.md`/`RUBRIC.md`/`RULES.md`/`SUBMISSION.md`.
 
