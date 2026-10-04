@@ -6,8 +6,8 @@ Phần phân tích tối đa một trang, không tính output ở phần 5.
 **Họ tên / MSSV:** Nguyễn Xuân Trường / 2A202602761
 **Repo:** https://github.com/truongapep/K4-Track02-Day17-NguyenXuanTruong-2A202602761-DataPipelineEngineering
 **Commit bài nộp:** 2c98d84
-**AI đã dùng và phạm vi hỗ trợ (hoặc không dùng):** Claude Code — hỗ trợ xác định 3 lỗi có chủ đích (staging/silver/config), đối chiếu logic với `dbt_project/`, gợi ý lệnh kiểm tra; mọi dòng sửa do người học tự xác nhận và kiểm chứng bằng `verify`/`rerun`/`parity`.
-**Nguồn tham khảo khác (nếu có):** Slide Ngày 17 (Bronze/Silver/Gold, CDC log-based, Data về muộn, Chạy lại & Backfill), docs `CHECKPOINTS.md`/`RUBRIC.md`/`RULES.md`.
+**AI đã dùng và phạm vi hỗ trợ (hoặc không dùng):** Claude Code — hỗ trợ xác định 3 lỗi có chủ đích (staging/silver/config), đối chiếu logic với `dbt_project/`, gợi ý lệnh kiểm tra. Claude (chat) — rà soát REPORT, đối chiếu với RUBRIC/RULES và đề xuất cách sửa `pipeline/llm_label.py` cho bonus B1 (cache theo hash + model + prompt version, validate và quarantine). Tôi đã đọc, chạy và kiểm chứng toàn bộ thay đổi bằng `verify`/`pytest`/`rerun`/`parity`/`bonus_llm`, và giải thích được từng dòng sửa.
+**Nguồn tham khảo khác (nếu có):** Slide Ngày 17 (Bronze/Silver/Gold, CDC log-based, Data về muộn, Chạy lại & Backfill), docs `CHECKPOINTS.md`/`RUBRIC.md`/`RULES.md`/`SUBMISSION.md`.
 
 ## 1. Ba lỗi
 
@@ -179,3 +179,20 @@ RESULT: PARITY — both implementations agree
 
 Nếu làm bonus, thêm output B1 hoặc đường dẫn bằng chứng B2 ở cuối phần này.
 
+$ .\.venv\Scripts\python.exe -m scripts.bonus_llm
+
+=== bonus: LLM labelling of 11 live tickets ===
+  cost estimate before running: ~484 tokens = $0.0010 per full run
+  [OK ] first run labels every live ticket
+  [OK ] re-run with same model + prompt makes 0 LLM calls
+  [OK ] every Gold label is bug / billing / other
+  [OK ] off-schema answers go to llm_label_quarantine
+  [OK ] new prompt version re-labels on purpose
+  [OK ] labels carry their prompt version
+BONUS PASS
+
+- Khoá cache = hash(input) + model + prompt version (bảng `llm_label_cache`); chạy lại cùng khoá thì 0 lần gọi, đổi `PROMPT_VERSION` thì gắn nhãn lại có chủ đích.
+- Cache lưu câu trả lời thô, chưa parse: nếu chỉ cache nhãn hợp lệ thì ticket trả lời sai schema sẽ bị gọi lại mỗi lần chạy.
+- Câu trả lời sai schema vào `llm_label_quarantine`, không bao giờ vào `gold_ticket_labels`.
+- Chi phí được ước tính trước khi chạy (~484 token ≈ $0.0010 mỗi lần chạy đầy đủ).
+- Đánh đổi: khoá chỉ tin vào số phiên bản prompt. Sửa `PROMPT_TEMPLATE` mà quên đổi `PROMPT_VERSION` thì cache trả nhãn cũ; cách khắc phục là đưa hash của template vào khoá.

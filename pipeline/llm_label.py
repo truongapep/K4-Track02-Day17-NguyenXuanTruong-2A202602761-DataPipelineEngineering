@@ -17,7 +17,7 @@ ticket on every run and writes whatever comes back. Your bonus task is to make
 real model (swap in any provider via .env if you like — the pipeline is the same).
 """
 from __future__ import annotations
-
+import hashlib
 import json
 import re
 
@@ -80,14 +80,50 @@ def live_tickets(con: duckdb.DuckDBPyConnection) -> list[tuple[str, str]]:
     """).fetchall()
 
 
+def input_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def label_tickets(con: duckdb.DuckDBPyConnection, llm: FakeLLM) -> dict:
-    """NAIVE version (shipped): one LLM call per ticket per run, no validation."""
-    rows = []
+    """Cached + validated version: key = hash(input) + model + prompt version."""
+    model = llm.model
+    prompt_version = PROMPT_VERSION          # read at call time, not import time
+    calls_before = llm.calls
+
+    con.execute("""CREATE TABLE IF NOT EXISTS llm_label_cache (
+        input_hash VARCHAR, model VARCHAR, prompt_version VARCHAR, raw VARCHAR)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS llm_label_quarantine (
+        ticket_id VARCHAR, input_hash VARCHAR, model VARCHAR,
+        prompt_version VARCHAR, raw VARCHAR)""")
+
+    good, bad = [], []
     for ticket_id, text in live_tickets(con):
-        raw = llm.complete(PROMPT_TEMPLATE.format(text=text))
-        rows.append((ticket_id, raw, MODEL, PROMPT_VERSION))
+        h = input_hash(text)
+        hit = con.execute(
+            "SELECT raw FROM llm_label_cache "
+            "WHERE input_hash = ? AND model = ? AND prompt_version = ?",
+            [h, model, prompt_version]).fetchone()
+        if hit is None:                      # cache miss -> the only place we pay
+            raw = llm.complete(PROMPT_TEMPLATE.format(text=text))
+            con.execute("INSERT INTO llm_label_cache VALUES (?, ?, ?, ?)",
+                        [h, model, prompt_version, raw])
+        else:
+            raw = hit[0]
+        label = parse_label(raw)
+        if label is None:
+            bad.append((ticket_id, h, model, prompt_version, raw))
+        else:
+            good.append((ticket_id, label, model, prompt_version))
+
+    # quarantine is rewritten per (model, prompt_version) -> idempotent
+    con.execute("DELETE FROM llm_label_quarantine WHERE model = ? AND prompt_version = ?",
+                [model, prompt_version])
+    if bad:
+        con.executemany("INSERT INTO llm_label_quarantine VALUES (?, ?, ?, ?, ?)", bad)
+
     con.execute("""CREATE OR REPLACE TABLE gold_ticket_labels (
         ticket_id VARCHAR, label VARCHAR, model VARCHAR, prompt_version VARCHAR)""")
-    if rows:
-        con.executemany("INSERT INTO gold_ticket_labels VALUES (?, ?, ?, ?)", rows)
-    return {"labeled": len(rows), "calls": llm.calls}
+    if good:
+        con.executemany("INSERT INTO gold_ticket_labels VALUES (?, ?, ?, ?)", good)
+    return {"labeled": len(good), "quarantined": len(bad),
+            "calls": llm.calls - calls_before}
