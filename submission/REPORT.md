@@ -5,7 +5,7 @@ Phần phân tích tối đa một trang, không tính output ở phần 5.
 
 **Họ tên / MSSV:** Nguyễn Xuân Trường / 2A202602761
 **Repo:** https://github.com/truongapep/K4-Track02-Day17-NguyenXuanTruong-2A202602761-DataPipelineEngineering
-**Commit bài nộp:** fbf7454
+**Commit bài nộp:** 2c98d84
 **AI đã dùng và phạm vi hỗ trợ (hoặc không dùng):** Claude Code — hỗ trợ xác định 3 lỗi có chủ đích (staging/silver/config), đối chiếu logic với `dbt_project/`, gợi ý lệnh kiểm tra; mọi dòng sửa do người học tự xác nhận và kiểm chứng bằng `verify`/`rerun`/`parity`.
 **Nguồn tham khảo khác (nếu có):** Slide Ngày 17 (Bronze/Silver/Gold, CDC log-based, Data về muộn, Chạy lại & Backfill), docs `CHECKPOINTS.md`/`RUBRIC.md`/`RULES.md`.
 
